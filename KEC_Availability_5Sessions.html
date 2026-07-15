@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KEC Attendance</title>
+<style>
+body{font-family:Arial;margin:15px;background:#f3f3f3}
+h2{text-align:center}
+input[type=text]{width:100%;padding:10px;margin-bottom:12px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box}
+.card{background:#fff;padding:12px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+select,input,textarea{width:100%;padding:7px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
+button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#0066cc;color:#fff}
+small{font-weight:bold}
+</style>
+</head>
+<body>
+<h2>📋 KEC Availability & Attendance</h2>
+<input id="search" placeholder="Search by name or matric">
+
+<div id="list"></div>
+
+<button onclick="exportCSV()">Export CSV</button>
+
+<script>
+const sessions=5;
+let people=[];
+for(let i=1;i<=20;i++){
+  people.push({
+    matric:"",
+    name:"Participant "+i,
+    phone:"",
+    notes:"",
+    attend:Array(sessions).fill("Pending")
+  });
+}
+const saved=localStorage.getItem("kec5");
+if(saved) people=JSON.parse(saved);
+
+function save(){
+ localStorage.setItem("kec5",JSON.stringify(people));
+}
+function render(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const list=document.getElementById("list");
+ list.innerHTML="";
+ people.forEach((p,i)=>{
+   if(!(p.name.toLowerCase().includes(q)||p.matric.toLowerCase().includes(q))) return;
+   let sessionHTML="";
+   for(let s=0;s<sessions;s++){
+      sessionHTML+=`
+      <div>
+      <small>Day ${s+1}</small>
+      <select onchange="people[${i}].attend[${s}]=this.value;save()">
+        <option ${p.attend[s]=="Pending"?"selected":""}>Pending</option>
+        <option ${p.attend[s]=="Available"?"selected":""}>Available</option>
+        <option ${p.attend[s]=="Unavailable"?"selected":""}>Unavailable</option>
+      </select>
+      </div>`;
+   }
+   list.innerHTML+=`
+   <div class="card">
+   <b>Name</b><input value="${p.name}" onchange="people[${i}].name=this.value;save()">
+   <b>Matric ID</b><input value="${p.matric}" onchange="people[${i}].matric=this.value;save()">
+   <b>Phone</b><input value="${p.phone}" onchange="people[${i}].phone=this.value;save()">
+   <b>Availability (5 Times)</b>
+   <div class="grid">${sessionHTML}</div>
+   <b>Notes</b>
+   <textarea onchange="people[${i}].notes=this.value;save()">${p.notes}</textarea>
+   </div>`;
+ });
+}
+document.getElementById("search").oninput=render;
+
+function exportCSV(){
+ let csv="Matric,Name,Phone,Day1,Day2,Day3,Day4,Day5,Notes\n";
+ people.forEach(p=>{
+   csv+=`"${p.matric}","${p.name}","${p.phone}","${p.attend[0]}","${p.attend[1]}","${p.attend[2]}","${p.attend[3]}","${p.attend[4]}","${p.notes}"\n`;
+ });
+ const blob=new Blob([csv],{type:"text/csv"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="KEC_Availability.csv";
+ a.click();
+}
+render();
+</script>
+</body>
+</html>
